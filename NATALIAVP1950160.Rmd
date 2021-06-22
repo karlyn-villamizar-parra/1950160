@@ -1,0 +1,234 @@
+---
+title: "ANALISIS FACTORIALES 1"
+author: "KARLYN NATALIA VILLAMIZAR PARRA"
+date: "19/6/2021"
+output: html_document
+  word_document: default
+  html_document: default
+---
+
+# IMPORTAR LA BASE DE DATOS EN FORMATO EXCEL
+```{r}
+library(readxl)
+datos<- read_excel("C:/Users/usuario/Desktop/NATALIA PARRA/DE PARCIAL FINAL/AF.xlsx")
+```
+
+# TIPIFICACION O ESTANDARIZACION DE VARIABLES
+la tipificacion permite que todas las variables metricas gocen de una misma unidad de medida estadistica.
+```{r}
+datost<- datos #crear una nueva base de datos o data frame
+datost<- scale(datost, center = T, scale = T)
+datost<- as.data.frame(datost)
+```
+
+# NORMALIDAD MULTIVARIANTE
+HO: Normalidad multivariante
+HI: No normalidad multivariante
+confianza= 95%
+alfa= 5% = 0.05
+P value > alfa: no se rechaza la HO (normalidad)
+P value < alfa: se rechaza la HO (no normalidad)
+```{r}
+library(MVN)
+mvn(datost[2:7])
+```
+como el P value > alfa, no se rechaza la HO, por lo tanto, existe normalidad multivariante.
+
+# MATRIZ DE CORRELACIONES
+HO: Correlacion = 0 (no hay correlacion)
+HI: Correlacion diferente de 0 (si hay correlacion)
+
+cuando no se rechaza HO, no se aplica AFE.
+se rechace HO, si para aplicar AFE.
+```{r}
+library(psych)
+corr.test(datost[,2:7])
+correlaciones<- corr.test(datost[,2:7]) #se crea la matriz de correlaciones
+correlaciones$r #matriz de correlaciones
+r <- as.matrix(correlaciones$r)
+```
+alfa= 0.05
+P value > alfa: no se rechaza HO
+P value < alfa: se rechaza HO, estamos en esta situacion, por lo tanto, si es aplicable el analisis factorial exploratorio.
+
+# INDICADORES DE APLICABILIDAD DEL AFE (BONDAD DEL AJUSTE)
+## CONTRASTE DE ESFERICIDAD DE BARTLETT  
+HO: correlaciones teoricas entre cada par de variables es nulo
+HI: las correlaciones teoricas entre cada par de variables no es nulo
+
+P value > alfa: no se aplica el AFE (no se rechaza HO)
+P value < alfa: si se aplica el AFE (se rechaza HO)
+```{r}
+dim(datost) #tamaño de la muestra= 30 personas
+cortest.bartlett(r, n= 30)
+```
+como el P value es menor a alfa, se rechaza la HO, por lo tanto, las correlaciones teoricas entre cada par de variables es nulo, es decir, si es aplicable el analisis factorial exploratorio (AFE).
+
+## MEDIDA DE ADECUACION MUESTRAL DE KAISER, MEYER Y OKLIN (KMO)
+Estudia variable por variable, si son o no aceptadas en el modelo para hacer AFE. (Que variables elimino o mantengo)
+se mantiene una variable en el modelo si es KMO es igual o mayor a 0,7.
+se elimina una variable del modelo, si el KMO es menor a 0,7.
+```{r}
+KMO(r)
+```
+KMO= 0,64 El modelo es mediocre, si es adecuado para realizar analisis factorial.
+KMO precio= 0,57 (miserable)
+cantidad= 0,54 (miserable)
+prendas= 0,64 (mediocre)
+entrada= 0.52 (miserable)
+redes sociales= 0,53 (miserable)
+tv= 0,54 (miserable)
+
+# DETERMINACION DEL NUMERO DE FACTORES A EXTRAER
+## Metodo de las componentes principales iteradas (Ejes principales)
+Este metodo de las Ejes principales es de naturaliza no parametrica, es decir, que se ocupa, cuando no hay normalidad multivariante; pero, tambien es valido para modelos parametricos (normalidad multivariante).
+
+```{r}
+fa.parallel(r, fm= "pa", n.obs = 30, ylabel = "Eigenvalues")
+```
+con el metodo de los ejes principales se extraeria solo 1 factor.
+
+## Metodo de las componentes principales
+Metodo parametrico, sirve solo para modelos con normalidad multivariante.
+```{r}
+fa.parallel(r, fm= "pc", n.obs = 30, ylabel = "Eigenvalues")
+```
+con el metodo de las componentes principales se recomienda extraer 1 factor.
+
+## Metodo de la maxima verosimilitud
+Metodo parametrico,sirve solo para modelos con normalidad multivariante.
+```{r}
+fa.parallel(r, fm= "ml", n.obs = 30, ylabel = "Eigenvalues")
+```
+con el metodo de las maxima verosimilitud se recomienda extraer 1 factor.
+
+## Metodo paralelo con iteraciones
+Metodo parametrico, sirve solo para modelos con normalidad multivariante.
+```{r}
+library(paran)
+paran(r, iterations= 10000, graph= T)
+```
+con el metodo de Horn`s (metodo paralelo con iteraciones) se recomienda extraer 2 factor.
+
+resumen:
+Ejes principales= 0 factor
+componentes principales= 0 factor
+maxima verosimilitud= 0 factor
+metodo paralelo con iteraciones (Horn`s)= 1 factor
+
+conclusion: vamos a extraer 1 factor.
+
+# METODOS DE EXTRACCION DE FACTORES
+## METODO DE ANALISIS DE LOS COMPONENTES PRINCIPALES (ACP)
+```{r}
+library(psych)
+acp<- principal(r, nfactors= 1, rotate= "none")
+acp
+```
+PC1: cargas factoriales de cada variable.
+h2: comunalidad (varianza comun explicada). precio es explicada en un 66,0% por el factor extraido. cantidad es explicada en un 11,8% por el factor extraido, prendas es explicada en un 24,2%, el ingreso en un 25,8%, redes sociales  es explicado en 06,8% y tv en 52,6%.
+
+mientras mas alta sea h2 es mejor el modelo. 0;1
+
+h2 + u2 = 1
+comunalidad + Especificidad= 1
+varianza explicada + varianza no explicada= 1
+
+ss loadings= 2,43 (Es la varianza explicada en valores absolutos, o la suma de los h2).
+
+proportion var= 0,67 (el % que la varianza explicada representa del total)
+
+Lo "ideal" es que proportion var sea lo mas cercano a 1.
+
+RMSR= 0,08 (raiz cuadrada media de los residuos)
+Teoricamente un modelo presenta una solucion adecuada cuand ek RMSR es menor o igual a 0,08.
+
+## METODO DE LOS EJES PRINCIPALES O COMPONENTES PRINCIPALES ITERADAS (CPI)
+```{r}
+library(psych)
+cpi<- fa(r, nfactors = 1, fm= "pa", rotate = "none", n.obs= 30)
+cpi
+```
+proportion var= 22%
+RMSR= 0,12
+
+## METODO DE MAXIMA VEROSIMILITUD
+```{r}
+library(psych)
+ave<- fa(r, nfactors = 1, fm= "ml", rotate = "none", n.obs = 30)
+ave
+```
+proportion var= 22%
+RMSR= 0,12
+
+### RESUMEN
+ACP: var= 67%     RSMR= 0,08
+CPI: var= 62%     RMSR= 0,04
+MVE: var= 62%     RMSR= 0,05
+
+¿Con cual nos quedamos?
+aquel modelo que tenga la proportion var mas alta y el RMSR mas pequeño.
+
+# REPRESENTACION GRAFICA DE LOS FACTORES EXTRAIDOS
+## Metodo de analisis de las componentes principales (ACP)
+```{r}
+#solo se grafica cuando hay 2 factores a extraer, con 1 factor no hay grafica
+plot(acp, labels = row.names(r),cex=.7, ylim=c(-.8, .8))
+```
+
+## Metodo de las componentes principales iteradas (CPI)
+```{r}
+plot(cpi, labels = row.names(r),cex=.7, ylim=c(-.8, .8))
+```
+
+## Metodo de la maxima verosimilitud (MVE)
+```{r}
+plot(mve, labels = row.names(r),cex=.7, ylim=c(-.8, .8))
+```
+# OBTENCION DE LAS PUNTUACIONES FACTORIALES
+## METODO DE ANALISIS DE LAS COMPONENTES PRINCIPALES ITERADAS (ACP)
+```{r}
+acp1<- principal(datost[,2:7], nfactors = 1, rotate =  "none", scores = T)
+acp1$scores
+puntuacionesfactoriales_acp<- acp1$scores
+puntuacionesfactoriales_acp<- as.data.frame(puntuacionesfactoriales_acp)
+```
+## METODO DE LAS COMPONENTES PRINCIPALES ITERADAS (CPI)
+```{r}
+cpil<- fa(datost[,2:7], nfactors = 1, fm = "pa", rotate = "none", n.obs = 30, scores = "regression")
+cpil$scores
+puntfact_cpi<- cpil$scores
+puntfact_cpi<- as.data.frame(puntfact_cpi)
+```
+## METODO DE LA MAXIMA VEROSIMILITUD
+```{r}
+mve1<- fa(datos[,2:7], nfactors = 1, fm = "ml", rotate = "none", n.obs = 30, scores = "regression")
+mve1$scores
+puntfact_mve<- mve1$scores
+puntfact_mve<- as.data.frame(puntfact_mve)
+```
+# OBTENCION DE LOS FACTORES EXTRAIDOS
+Aqui se trabaja con el metodo que el investigador decicio (ACP, CPI, MVE).
+```{r}
+factor.scores(r, acp, method = "thurstone")
+```
+Z1= 0,23precio = 0,20cantidad = 0,2prendas + 0,22entradas = 0,16redes sociales + 0,2tv
+
+
+# AGREGAR FACTOR EXTRAIDO (PUNTUACIONES FACTORIALES) EN EL DATA FRAME ORIGINAL
+```{r}
+datos_puntuaciones<- c(datos, puntuacionesfactoriales_acp)
+datos_puntuaciones<- as.data.frame(datos_puntuaciones)
+```
+# GUARDAR EL DATA FRAME "DATOS_PUNTUACIONES"
+```{r}
+setwd("C:/users/usuario/Desktop/NATALIA PARRA") #define donde guardaras tu archivo excel csv
+write.table(datos_puntuaciones, file= "encuesta.csv", sep = ";", row.names = F, dec = ",2)
+```
+
+
+
+
+
+
+
